@@ -5,9 +5,9 @@ library(vroom)
 library(shiny)
 
 if (!exists("injuries")) {
-  injuries <- vroom::vroom("neiss/injuries.tsv.gz")
-  products <- vroom::vroom("neiss/products.tsv")
-  population <- vroom::vroom("neiss/population.tsv")
+  injuries <- vroom::vroom("injuries.tsv.gz")
+  products <- vroom::vroom("products.tsv")
+  population <- vroom::vroom("population.tsv")
 }
 
 ui <- fluidPage(
