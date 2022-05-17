@@ -1,11 +1,7 @@
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+
+# Biggest change to make: must add code for EDA to determine which parts of selected or loaded data should be retained for ordination
+# add code to handle environmental variables
 
 library(shiny)
 library(vegan)
@@ -30,7 +26,7 @@ ui <- fluidPage(
     # Application title
     titlePanel("Ordination Example"),
     
-    fluidRow(colum(4, selectInput("the_data", "Select Data", choices = datas)),
+    fluidRow(column(4, selectInput("the_data", "Select Data", choices = datas)),
              column(4, selectInput("ords", "Select Ordination Method", choices = ords)),
              column(4, selectInput("dists", "Select Distance/Dissimilarity Measure", choices = dists))),
 
@@ -42,12 +38,12 @@ ui <- fluidPage(
                         choices = names(dune.env),
                         selected = names(dune.env[c(2,3)]),
                         inline = FALSE)
-        )),
+        ),
 
         # Show a plot of the generated distribution
         mainPanel(
            plotOutput("ord_plot")
-        )
+        ))
     )
 
 
@@ -107,13 +103,20 @@ server <- function(input, output) {
 
     output$ord_plot <- renderPlot({
         # generate bins based on input$bins from ui.R
-        axis_1 <- the_ord$vectors
-        axis_2 <- 
-        env_color <- 
-        env_shape <- 
+        # These need to become reactives
+        plot_df <- data.frame(
+            axis_1 <- the_ord$vectors[, 1],
+            axis_2 <- the_ord$vectors[, 2],
+            env_color <- dune.env$Moisture,
+            env_shape <- dune.env$Management
+        )
 
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
+        # draw the ordination
+        ggplot2(data == plot_df,
+                mapping = aes(x = axis_1, y = axis_2, color = env_color, shape = env_shape)) +
+            geom_point(size = 4) +
+            xlab("Axis 1") +
+            ylab("Axis 2")
     })
 }
 
