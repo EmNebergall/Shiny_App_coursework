@@ -1,0 +1,121 @@
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+
+library(shiny)
+library(vegan)
+library(ape)
+
+if(!exists("dune")) {
+    data(dune)
+    data(dune.env)
+}
+
+datas <- c("dune")
+
+ords <- c("PCoA", "NMDS")
+
+dists <- c("Euclidean", 
+           "Bray Curtis",
+           "Jaccard")
+
+# Define UI for application that draws a histogram
+ui <- fluidPage(
+
+    # Application title
+    titlePanel("Ordination Example"),
+    
+    fluidRow(colum(4, selectInput("the_data", "Select Data", choices = datas)),
+             column(4, selectInput("ords", "Select Ordination Method", choices = ords)),
+             column(4, selectInput("dists", "Select Distance/Dissimilarity Measure", choices = dists))),
+
+    # Sidebar with a slider input for number of bins 
+    sidebarLayout(
+        sidebarPanel(
+            checkboxGroupInput(inputId = "env_vars",
+                        label = "Environmental Variables: Select 2 to Display on Plot",
+                        choices = names(dune.env),
+                        selected = names(dune.env[c(2,3)]),
+                        inline = FALSE)
+        )),
+
+        # Show a plot of the generated distribution
+        mainPanel(
+           plotOutput("ord_plot")
+        )
+    )
+
+
+ordinate <- function(ord_method, dist_mat) {
+    if (ord_method == "PCoA") {
+        ordination_output <- ape::pcoa(selected_data)
+    } else {
+        if (ord_method == "NMDS") {
+            ordination_output <- metaMDS(
+                selected_data,
+                distance = NULL,
+                autotransform = FALSE,
+                k = 2
+            )
+            
+        }
+    }
+    
+    return(ordination_output)
+}
+
+measure_distance <- function(dis_method, selected_data) {
+    if (dis_method == "Euclidean") {
+        scale(selected_data)
+    } else {
+        if (dis_method == "Bray Curtis") {
+            vegdist(selected_data)
+        } else {
+            if (dis_method == "Jaccard") {
+                vegdist(selected_data, method = "jaccard")
+            }
+        }
+    }
+}
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+    
+    selected_data <- reactive({
+        #this has to change to accomodate more datasets
+        get(input$the_data, "package:vegan")
+    })
+    
+    selected_dis_measure <- reactive({
+        input$dists
+    })
+    
+    selected_ord_method <- reactive({
+        input$ords
+    })
+    
+    ready_data <- measure_distance(selected_dis_measure(), selected_data())
+    
+    
+    the_ord <- ordination(selected_ord_method(), ready_data())
+
+
+    output$ord_plot <- renderPlot({
+        # generate bins based on input$bins from ui.R
+        axis_1 <- the_ord$vectors
+        axis_2 <- 
+        env_color <- 
+        env_shape <- 
+
+        # draw the histogram with the specified number of bins
+        hist(x, breaks = bins, col = 'darkgray', border = 'white')
+    })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
