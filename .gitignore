@@ -1,7 +1,14 @@
 # History files
 .Rhistory
 .Rapp.history
-.Rproj
+*.Rproj
+
+
+#data unless specified
+*.csv
+*.tsv
+*.gz
+
 
 # Session Data files
 .RData
