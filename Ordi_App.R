@@ -6,6 +6,8 @@
 library(shiny)
 library(vegan)
 library(ape)
+library(tidyverse)
+library(ggplot2)
 
 datas <- c("dune", "BCI", "mite")
 
@@ -21,38 +23,41 @@ dists <- c("Euclidean",
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-
+    
     # Application title
     titlePanel("Ordination Example"),
     
-    fluidRow(column(4, selectInput("the_data", "Select Data", choices = data_pairs[ ,1])),
+    fluidRow(column(4, selectInput("the_data", "Select Data", choices = datas)),
              column(4, selectInput("ords", "Select Ordination Method", choices = ords)),
              column(4, selectInput("dists", "Select Distance/Dissimilarity Measure", choices = dists))),
-
+    
     # Sidebar with a slider input for number of bins 
+    # Start out with the choices from the dune dataset and update using observe and update functions on the server side
     sidebarLayout(
         sidebarPanel(
             checkboxGroupInput(inputId = "env_vars",
-                        label = "Environmental Variables: Select 2 to Display on Plot",
-                        choices = c("A1","Moisture","Management","Use","Manure"),
-                        selected = c("Moisture", "Management"),
-                        inline = FALSE)
-            ),
-
+                               label = "Environmental Variables: Select 2 to Display on Plot",
+                               choices = c("A1","Moisture","Management","Use","Manure"),
+                               selected = c("Moisture", "Management"),
+                               inline = FALSE)
+        ),
+        
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("ord_plot")
+            #plotOutput("ord_plot")
+            DT::dataTableOutput("test"),
+            textOutput("text_test")
         ))
-    )
+)
 
 
 ordinate <- function(ord_method, dist_mat) {
     if (ord_method == "PCoA") {
-        ordination_output <- ape::pcoa(selected_data)
+        ordination_output <- ape::pcoa(dist_mat)
     } else {
         if (ord_method == "NMDS") {
             ordination_output <- metaMDS(
-                selected_data,
+                dist_mat,
                 distance = NULL,
                 autotransform = FALSE,
                 k = 2
@@ -66,75 +71,98 @@ ordinate <- function(ord_method, dist_mat) {
 
 measure_distance <- function(dis_method, selected_data) {
     if (dis_method == "Euclidean") {
-        scale(selected_data)
+        dist_mat <- scale(selected_data)
     } else {
         if (dis_method == "Bray Curtis") {
-            vegdist(selected_data)
+            dist_mat <- vegdist(selected_data)
         } else {
             if (dis_method == "Jaccard") {
-                vegdist(selected_data, method = "jaccard")
+                dist_mat <- vegdist(selected_data, method = "jaccard")
             }
         }
     }
+    return(dist_mat = dist_mat)
 }
 
-
+select_user_data <- function(user_input) {
+    if(user_input == "dune") {
+        ind_obs <- get(data(dune))
+        env_vars <- get(data(dune.env))
+    } else {
+        if(user_input == "BCI") {
+            ind_obs <- get(data(BCI))
+            env_vars <- get(data(BCI.env))
+        } else {
+            if(user_input == "mite") {
+                ind_obs <- get(data(mite))
+                env_vars <- get(data(mite.env))
+            }
+        }
+    }
+    
+    return(list(ind_obs = ind_obs, env_vars = env_vars))
+}
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-  selected_data <- reactive({
+
+    # output is a list: ind_obs is matrix of data to ordinate and env_vars is environmental data
+    selected_data <- reactive({select_user_data(input$the_data)})
     
-    #data to pass to the ordination
-    ind_obs <- get(data(input$the_data), "package:vegan")
+    #output$test <- DT::renderDataTable(selected_data()[[2]])
     
-    #environmental data from the data pairs object
-    env_data <- data_pairs %>% filter(env_data == input$the_data) %>% select(env_data)
+    selected_dis_measure <- reactive({
+        input$dists
+    })
     
-  })
-  
-  selected_dis_measure <- reactive({
-    input$dists
-  })
-  
-  selected_ord_method <- reactive({
-    input$ords
-  })
-  
-  output$env_var_choices <- names(selected_data()$env_data)
-  
-  ready_data <- measure_distance(selected_dis_measure(), dune)
-  
-  
-  the_ord <- ordination(selected_ord_method(), ready_data())
-  
-  plot_df <- reactive({
-    data.frame(
-      axis_1 <- the_ord$vectors[, 1],
-      axis_2 <- the_ord$vectors[, 2],
-      # these will be changed to get the variable selected by the checkbox input env_vars
-      env_color <- selected_data()$env_data[ ,1],
-      env_shape <- selected_data()$env_data[ ,2]
-    )
+    selected_ord_method <- reactive({input$ords})
     
-  })
-  
-  
-  output$ord_plot <- renderPlot({
-    # draw the ordination
-    ggplot2(
-      data == plot_df(),
-      mapping = aes(
-        x = axis_1,
-        y = axis_2,
-        color = env_color,
-        shape = env_shape
-      )
-    ) +
-      geom_point(size = 4) +
-      xlab("Axis 1") +
-      ylab("Axis 2")
-  })
+    output$text_test <- renderText(selected_dis_measure())
+    
+    # get the names of the environmental data for the selected dataset
+    env_var_choices <- reactive({
+        names(selected_data()$env_vars)
+    })
+    
+    # reactive to hold the distance matrix generated using the method selected by the user on the data selected by the user
+    ready_data <- reactive({measure_distance(selected_dis_measure(), selected_data()$ind_obs)})
+    
+    output$test <- DT::renderDataTable(selected_data()[[1]])
+    
+    # perform the ordination, results in the_ord object
+    the_ord <- reactive({ordinate(selected_ord_method(), ready_data()$dist_mat)})
+    
+    # test print table
+    #output$test <- DT::renderDataTable(as.table(ready_data()$dist_mat))
+    
+    plot_df <- reactive({
+        data.frame(
+            axis_1 <- the_ord()$vectors[, 1],
+            axis_2 <- the_ord()$vectors[, 2],
+            # these will be changed to get the variable selected by the checkbox input env_vars
+            env_color <- selected_data()$env_vars[2],
+            env_shape <- selected_data()$env_vars[3]
+        )
+    })
+    
+    
+    output$ordi_plot <- renderPlot({
+        # draw the ordination
+        ggplot(
+            data == plot_df(),
+            mapping = aes(
+                x = plot_df()$axis_1,
+                y = plot_df()$axis_2,
+                color = plot_df()$env_color,
+                shape = plot_df()$env_shape
+            )
+        ) +
+            geom_point(size = 4) +
+            xlab("Axis 1") +
+            ylab("Axis 2")
+    })
 }
 
 # Run the application
 shinyApp(ui = ui, server = server)
+
