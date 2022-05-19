@@ -1,4 +1,5 @@
-#
+# Error: $ operator is invalid for atomic vectors
+# This error appears when I try to render plot_df as a table so that I can see if it at least contains data. :(
 
 # Biggest change to make: must add code for EDA to determine which parts of selected or loaded data should be retained for ordination
 # add code to handle environmental variables
