@@ -60,6 +60,7 @@ ui <- fluidPage(
 )
 
 
+# Stack trace indicates there is a problem occurring at the line where I define ordination_output as the pcoa, generating the $ operator invalid for atomic vectors error
 ordinate <- function(ord_method, dist_mat) {
   if (ord_method == "PCoA") {
     ordination_output <- ape::pcoa(dist_mat)
