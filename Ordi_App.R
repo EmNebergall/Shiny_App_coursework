@@ -46,7 +46,7 @@ ui <- fluidPage(
         mainPanel(
             #plotOutput("ord_plot")
             DT::dataTableOutput("test"),
-            textOutput("text_test")
+            #textOutput("test")
         ))
 )
 
@@ -117,9 +117,7 @@ server <- function(input, output) {
     
     selected_ord_method <- reactive({input$ords})
     
-    output$text_test <- renderText(selected_dis_measure())
-    
-    # get the names of the environmental data for the selected dataset
+        # get the names of the environmental data for the selected dataset
     env_var_choices <- reactive({
         names(selected_data()$env_vars)
     })
@@ -127,34 +125,33 @@ server <- function(input, output) {
     # reactive to hold the distance matrix generated using the method selected by the user on the data selected by the user
     ready_data <- reactive({measure_distance(selected_dis_measure(), selected_data()$ind_obs)})
     
-    output$test <- DT::renderDataTable(selected_data()[[1]])
-    
     # perform the ordination, results in the_ord object
     the_ord <- reactive({ordinate(selected_ord_method(), ready_data()$dist_mat)})
     
-    # test print table
-    #output$test <- DT::renderDataTable(as.table(ready_data()$dist_mat))
-    
+    # dataframe to feed to ggplot
     plot_df <- reactive({
-        data.frame(
-            axis_1 <- the_ord()$vectors[, 1],
-            axis_2 <- the_ord()$vectors[, 2],
-            # these will be changed to get the variable selected by the checkbox input env_vars
-            env_color <- selected_data()$env_vars[2],
-            env_shape <- selected_data()$env_vars[3]
-        )
+      data.frame(
+        axis_1 = the_ord()$vectors[, 1],
+        axis_2 = the_ord()$vectors[, 2],
+        env_color = selected_data()$env_vars[2],
+        env_shape = selected_data()$env_vars[3]
+      )
     })
+    
+    
+    # test print table
+    output$test <- DT::renderDataTable(plot_df[1])
     
     
     output$ordi_plot <- renderPlot({
         # draw the ordination
         ggplot(
-            data == plot_df(),
+            data == plot_df,
             mapping = aes(
-                x = plot_df()$axis_1,
-                y = plot_df()$axis_2,
-                color = plot_df()$env_color,
-                shape = plot_df()$env_shape
+                x = axis_1,
+                y = axis_2,
+                color = env_color,
+                shape = env_shape
             )
         ) +
             geom_point(size = 4) +
