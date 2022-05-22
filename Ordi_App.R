@@ -4,11 +4,7 @@
 # Biggest change to make: must add code for EDA to determine which parts of selected or loaded data should be retained for ordination
 # add code to handle environmental variables
 
-library(shiny)
-library(vegan)
-library(ape)
-library(tidyverse)
-library(ggplot2)
+
 
 # vegan package built in datasets and their accompanying environmental variables
 datas <- c("dune", "BCI", "mite")
@@ -37,7 +33,6 @@ ui <- fluidPage(
            column(4, selectInput("ords", "Select Ordination Method", choices = ords)),
            column(4, selectInput("dists", "Select Distance/Dissimilarity Measure", choices = dists))),
   
-  # Sidebar with a slider input for number of bins 
   # Start out with the choices from the dune dataset and update using observe and update functions on the server side
   # must add checkboxes to select PCO axes to retain for the plot
   sidebarLayout(
@@ -60,9 +55,10 @@ ui <- fluidPage(
     # using the extra output statements to debug: I've been able to display the selected data, the corresponding environmental data,
     # but not any of the plot_df content
     mainPanel(
+      verbatimTextOutput("str_ready_data")
       #plotOutput("screeplot"),
       #plotOutput("ordi_plot),
-      DT::dataTableOutput("test"),
+      #dataTableOutput("test_ready_data")
       #textOutput("text_test")
     ))
   
@@ -146,6 +142,8 @@ server <- function(input, output) {
   # reactive to hold the distance matrix generated using the method selected by the user on the data selected by the user
   ready_data <- reactive({measure_distance(selected_dis_measure(), selected_data()$ind_obs)})
   
+  output$str_ready_data <- renderPrint({str(ready_data())})
+  
   # perform the ordination, results in the_ord object
   the_ord <- reactive({
     my_ord <- ordinate(selected_ord_method(), ready_data()$dist_mat)
@@ -158,7 +156,7 @@ server <- function(input, output) {
   
   #browser()
   
-  output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
+  #output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
   
   # dataframe to feed to ggplot
   # the vectors selected here need to be updated by checkboxinput from the ui
@@ -173,8 +171,8 @@ server <- function(input, output) {
   
   #output$text_test <- renderText(paste("the class of the ordination object is: ", class(plot_df)))
   
-  # test print table
-  output$test <- DT::renderDataTable(plot_df())
+  # test print table, to see if the ordination is even running
+  #output$test <- DT::renderDataTable(plot_df())
   
   
   output$ordi_plot <- renderPlot({
