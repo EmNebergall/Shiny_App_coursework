@@ -48,15 +48,26 @@ ui <- fluidPage(
                          selected = c("Moisture", "Management"),
                          inline = FALSE)
     ),
+    # checkboxes to pick axes from pcoa or nmds to show on the plot
+  #   checkboxGroupInput(inputId = "env_vars",
+  #                      label = "Axes to plot: Select 2",
+  #                      choices = ## up to 4 or 5 axes/components to choose from?),
+  #                      selected = c(1,2),
+  #                      inline = FALSE)
+  # ),
     
     # Show a plot of the generated distribution
     # using the extra output statements to debug: I've been able to display the selected data, the corresponding environmental data,
     # but not any of the plot_df content
     mainPanel(
-      plotOutput("screeplot"),
+      #plotOutput("screeplot"),
+      #plotOutput("ordi_plot),
       DT::dataTableOutput("test"),
-      textOutput("text_test")
+      #textOutput("text_test")
     ))
+  
+  
+  # to add: buttons to move through the steps one at a time....can I have them appear sequentially after each preceding step is completed?
 )
 
 
@@ -81,7 +92,7 @@ ordinate <- function(ord_method, dist_mat) {
 
 measure_distance <- function(dis_method, selected_data) {
   if (dis_method == "Euclidean") {
-    dist_mat <- scale(selected_data)
+    dist_mat <- vegdist(selected_data, method = "euclidean")
   } else {
     if (dis_method == "Bray Curtis") {
       dist_mat <- vegdist(selected_data)
@@ -150,16 +161,17 @@ server <- function(input, output) {
   output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
   
   # dataframe to feed to ggplot
+  # the vectors selected here need to be updated by checkboxinput from the ui
   plot_df <- reactive({
     data.frame(
       axis_1 = the_ord()$vectors[, 1],
       axis_2 = the_ord()$vectors[, 2],
-      env_color = selected_data()$env_vars[2],
-      env_shape = selected_data()$env_vars[3]
+      env_color = selected_data()$env_vars[,2],
+      env_shape = selected_data()$env_vars[,3]
     )
   })
   
-  output$text_test <- renderText(paste("the class of the ordination object is: ", class(plot_df)))
+  #output$text_test <- renderText(paste("the class of the ordination object is: ", class(plot_df)))
   
   # test print table
   output$test <- DT::renderDataTable(plot_df())
