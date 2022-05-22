@@ -56,14 +56,15 @@ ui <- fluidPage(
     # but not any of the plot_df content
     mainPanel(
       verbatimTextOutput("str_ready_data"),
-      plotOutput("screeplot")
-      #plotOutput("ordi_plot),
+      plotOutput("screeplot"),
+      plotOutput("ordi_plot")
       #dataTableOutput("test")
       #textOutput("text_test")
     ))
   
   
   # to add: buttons to move through the steps one at a time....can I have them appear sequentially after each preceding step is completed?
+  # to add: text and a display about the chosen data: how does the user know what methods to choose if they don't have information about the data
 )
 
 
