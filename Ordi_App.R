@@ -55,10 +55,10 @@ ui <- fluidPage(
     # using the extra output statements to debug: I've been able to display the selected data, the corresponding environmental data,
     # but not any of the plot_df content
     mainPanel(
-      verbatimTextOutput("str_ready_data")
-      #plotOutput("screeplot"),
+      verbatimTextOutput("str_ready_data"),
+      plotOutput("screeplot")
       #plotOutput("ordi_plot),
-      #dataTableOutput("test_ready_data")
+      #dataTableOutput("test")
       #textOutput("text_test")
     ))
   
@@ -146,7 +146,7 @@ server <- function(input, output) {
   
   # perform the ordination, results in the_ord object
   the_ord <- reactive({
-    my_ord <- ordinate(selected_ord_method(), ready_data()$dist_mat)
+    my_ord <- ordinate(selected_ord_method(), ready_data())
     
     vectors <- my_ord$vectors
     values <- my_ord$values
@@ -156,7 +156,7 @@ server <- function(input, output) {
   
   #browser()
   
-  #output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
+  output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
   
   # dataframe to feed to ggplot
   # the vectors selected here need to be updated by checkboxinput from the ui
