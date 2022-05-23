@@ -4,7 +4,9 @@
 # Biggest change to make: must add code for EDA to determine which parts of selected or loaded data should be retained for ordination
 # add code to handle environmental variables
 
-
+library(vegan)
+library(ape)
+library(ggplot2)
 
 # vegan package built in datasets and their accompanying environmental variables
 datas <- c("dune", "BCI", "mite")
@@ -55,7 +57,7 @@ ui <- fluidPage(
     # using the extra output statements to debug: I've been able to display the selected data, the corresponding environmental data,
     # but not any of the plot_df content
     mainPanel(
-      verbatimTextOutput("str_ready_data"),
+      verbatimTextOutput("selected_data"),
       plotOutput("screeplot"),
       plotOutput("ordi_plot")
       #dataTableOutput("test")
@@ -68,7 +70,6 @@ ui <- fluidPage(
 )
 
 
-# Stack trace indicates there is a problem occurring at the line where I define ordination_output as the pcoa, generating the $ operator invalid for atomic vectors error
 ordinate <- function(ord_method, dist_mat) {
   if (ord_method == "PCoA") {
     ordination_output <- ape::pcoa(dist_mat)
@@ -143,7 +144,7 @@ server <- function(input, output) {
   # reactive to hold the distance matrix generated using the method selected by the user on the data selected by the user
   ready_data <- reactive({measure_distance(selected_dis_measure(), selected_data()$ind_obs)})
   
-  output$str_ready_data <- renderPrint({str(ready_data())})
+  output$selected_data <- renderPrint({str(selected_data())})
   
   # perform the ordination, results in the_ord object
   the_ord <- reactive({
