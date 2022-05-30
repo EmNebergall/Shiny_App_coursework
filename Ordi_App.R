@@ -57,7 +57,7 @@ ui <- fluidPage(
     # using the extra output statements to debug: I've been able to display the selected data, the corresponding environmental data,
     # but not any of the plot_df content
     mainPanel(
-      verbatimTextOutput("selected_data"),
+      DT::dataTableOutput("selected_data"),
       plotOutput("screeplot"),
       plotOutput("ordi_plot")
       #dataTableOutput("test")
@@ -123,10 +123,11 @@ select_user_data <- function(user_input) {
 }
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {
-  
+server <- function(input, output, session) {
   # output is a list: ind_obs is matrix of data to ordinate and env_vars is environmental data
-  selected_data <- reactive({select_user_data(input$the_data)})
+  selected_data <- reactive({
+    select_user_data(input$the_data)
+  })
   
   #output$test <- DT::renderDataTable(selected_data()[[2]])
   
@@ -134,17 +135,28 @@ server <- function(input, output) {
     input$dists
   })
   
-  selected_ord_method <- reactive({input$ords})
+  selected_ord_method <- reactive({
+    input$ords
+  })
   
   # get the names of the environmental data for the selected dataset
-  env_var_choices <- reactive({
-    names(selected_data()$env_vars)
-  })
+  observeEvent(input$the_data, {
+    choices = names(selected_data()$env_vars)
+    
+    updateCheckboxGroupInput(inputId = "env_vars",
+                             label = "Environmental Variables: Select 2 to Display on Plot",
+                             choices = choices,
+                             selected = c(choices[1], choices[2]),
+                             inline = FALSE)
+  }, ignoreNULL = FALSE)
+
+
+
   
   # reactive to hold the distance matrix generated using the method selected by the user on the data selected by the user
   ready_data <- reactive({measure_distance(selected_dis_measure(), selected_data()$ind_obs)})
   
-  output$selected_data <- renderPrint({str(selected_data())})
+  output$selected_data <- renderDataTable({str(selected_data())})
   
   # perform the ordination, results in the_ord object
   the_ord <- reactive({
@@ -156,7 +168,7 @@ server <- function(input, output) {
     return(list(vectors = vectors, values = values))
     })
   
-  #browser()
+  
   
   output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
   
@@ -171,13 +183,9 @@ server <- function(input, output) {
     )
   })
   
-  #output$text_test <- renderText(paste("the class of the ordination object is: ", class(plot_df)))
-  
-  # test print table, to see if the ordination is even running
-  #output$test <- DT::renderDataTable(plot_df())
   
   
-  output$ordi_plot <- renderPlot({
+    output$ordi_plot <- renderPlot({
     # draw the ordination
     ggplot(
       data = plot_df(),
