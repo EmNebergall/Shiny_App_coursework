@@ -7,6 +7,8 @@
 library(vegan)
 library(ape)
 library(ggplot2)
+library(DT)
+source("ordi_app_functions.R")
 
 # vegan package built in datasets and their accompanying environmental variables
 datas <- c("dune", "BCI", "mite")
@@ -26,101 +28,63 @@ dists <- c("Euclidean",
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-  
   # Application title
   titlePanel("Ordination Example"),
   
   # select data, ord method, and distance/dissimilarity measure
-  fluidRow(column(4, selectInput("the_data", "Select Data", choices = datas)),
-           column(4, selectInput("ords", "Select Ordination Method", choices = ords)),
-           column(4, selectInput("dists", "Select Distance/Dissimilarity Measure", choices = dists))),
-  
-  # Start out with the choices from the dune dataset and update using observe and update functions on the server side
-  # must add checkboxes to select PCO axes to retain for the plot
-  sidebarLayout(
-    sidebarPanel(
-      checkboxGroupInput(inputId = "env_vars",
-                         label = "Environmental Variables: Select 2 to Display on Plot",
-                         choices = c("A1","Moisture","Management","Use","Manure"),
-                         selected = c("Moisture", "Management"),
-                         inline = FALSE)
+  fluidRow(
+    column(4, selectInput("the_data", "Select Data", choices = datas)),
+    column(
+      4,
+      selectInput("ords", "Select Ordination Method", choices = ords)
     ),
-    # checkboxes to pick axes from pcoa or nmds to show on the plot
+    column(
+      4,
+      selectInput("dists", "Select Distance/Dissimilarity Measure", choices = dists)
+    )
+  ),
+  
+  tabsetPanel(
+    tabPanel("Data", DTOutput("selected_data_2"), DTOutput("selected_data_1")),
+    tabPanel("Scree Plot", plotOutput("screeplot")),
+    tabPanel("Ordination Plot", plotOutput("ordi_plot"),
+             # Start out with the choices from the dune dataset and update using observe and update functions on the server side
+             # must add checkboxes to select PCO axes to retain for the plot
+             fluidRow(column(
+               4,
+               radioButtons(
+                 inputId = "env_shape",
+                 label = "Select a discrete variable",
+                 choices = c("A1", "Moisture", "Management", "Use", "Manure"),
+                 selected = c("Management"),
+                 inline = FALSE
+               ),
+               radioButtons(
+                 inputId = "env_color",
+                 label = "Select a discrete or continuous variable",
+                 choices = c("A1", "Moisture", "Management", "Use", "Manure"),
+                 selected = c("Moisture"),
+                 inline = FALSE
+               )
+             )))
+  ), 
+  
+
+  # checkboxes to pick axes from pcoa or nmds to show on the plot
   #   checkboxGroupInput(inputId = "env_vars",
   #                      label = "Axes to plot: Select 2",
   #                      choices = ## up to 4 or 5 axes/components to choose from?),
   #                      selected = c(1,2),
   #                      inline = FALSE)
   # ),
-    
-    # Show a plot of the generated distribution
-    # using the extra output statements to debug: I've been able to display the selected data, the corresponding environmental data,
-    # but not any of the plot_df content
-    mainPanel(
-      DT::dataTableOutput("selected_data"),
-      plotOutput("screeplot"),
-      plotOutput("ordi_plot")
-      #dataTableOutput("test")
-      #textOutput("text_test")
-    ))
-  
   
   # to add: buttons to move through the steps one at a time....can I have them appear sequentially after each preceding step is completed?
-  # to add: text and a display about the chosen data: how does the user know what methods to choose if they don't have information about the data
-)
-
-
-ordinate <- function(ord_method, dist_mat) {
-  if (ord_method == "PCoA") {
-    ordination_output <- ape::pcoa(dist_mat)
-  } else {
-    if (ord_method == "NMDS") {
-      ordination_output <- metaMDS(
-        dist_mat,
-        distance = NULL,
-        autotransform = FALSE,
-        k = 2
-      )
-      
-    }
-  }
+  # to add: text and a display about the chosen data: how does the user know what methods to choose if they don't have information about the data)
   
-  return(ordination_output)
-}
-
-measure_distance <- function(dis_method, selected_data) {
-  if (dis_method == "Euclidean") {
-    dist_mat <- vegdist(selected_data, method = "euclidean")
-  } else {
-    if (dis_method == "Bray Curtis") {
-      dist_mat <- vegdist(selected_data)
-    } else {
-      if (dis_method == "Jaccard") {
-        dist_mat <- vegdist(selected_data, method = "jaccard")
-      }
-    }
-  }
-  return(dist_mat = dist_mat)
-}
-
-select_user_data <- function(user_input) {
-  if(user_input == "dune") {
-    ind_obs <- get(data(dune))
-    env_vars <- get(data(dune.env))
-  } else {
-    if(user_input == "BCI") {
-      ind_obs <- get(data(BCI))
-      env_vars <- get(data(BCI.env))
-    } else {
-      if(user_input == "mite") {
-        ind_obs <- get(data(mite))
-        env_vars <- get(data(mite.env))
-      }
-    }
-  }
+  )
   
-  return(list(ind_obs = ind_obs, env_vars = env_vars))
-}
+
+
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
@@ -156,7 +120,12 @@ server <- function(input, output, session) {
   # reactive to hold the distance matrix generated using the method selected by the user on the data selected by the user
   ready_data <- reactive({measure_distance(selected_dis_measure(), selected_data()$ind_obs)})
   
-  output$selected_data <- renderDataTable({str(selected_data())})
+  # display data table as first tab
+  output$selected_data_1 <- renderDT({selected_data()$ind_obs})
+  output$selected_data_2 <- renderDT({selected_data()$env_vars})
+  
+  env_shape_choice <- reactive({input$env_shape})
+  env_color_choice <- reactive({input$env_color})
   
   # perform the ordination, results in the_ord object
   the_ord <- reactive({
@@ -168,8 +137,6 @@ server <- function(input, output, session) {
     return(list(vectors = vectors, values = values))
     })
   
-  
-  
   output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
   
   # dataframe to feed to ggplot
@@ -178,8 +145,8 @@ server <- function(input, output, session) {
     data.frame(
       axis_1 = the_ord()$vectors[, 1],
       axis_2 = the_ord()$vectors[, 2],
-      env_color = selected_data()$env_vars[,2],
-      env_shape = selected_data()$env_vars[,3]
+      env_color = env_color_choice(),
+      env_shape = env_shape_choice()
     )
   })
   
