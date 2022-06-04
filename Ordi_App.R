@@ -8,6 +8,7 @@ library(vegan)
 library(ape)
 library(ggplot2)
 library(DT)
+library(bslib)
 source("ordi_app_functions.R")
 
 # vegan package built in datasets and their accompanying environmental variables
@@ -28,6 +29,8 @@ dists <- c("Euclidean",
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+  
+  theme = bs_theme(version = 4, bootswatch = "slate"),
   # Application title
   titlePanel("Ordination Example"),
   
@@ -45,9 +48,35 @@ ui <- fluidPage(
   ),
   
   tabsetPanel(
-    tabPanel("Data", DTOutput("selected_data_2"), DTOutput("selected_data_1")),
-    tabPanel("Scree Plot", plotOutput("screeplot")),
-    tabPanel("Ordination Plot", plotOutput("ordi_plot"),
+    tabPanel(
+      "Data",
+      DTOutput("selected_data_2"),
+      DTOutput("selected_data_1")
+    ),
+    tabPanel("Scree Plot", plotOutput("screeplot"),
+             fluidRow(column(
+               4,
+               radioButtons(
+                 inputId = "axis_1",
+                 label = "Select the component to display on the horizontal axis",
+                 choices = seq(1,4),
+                 selected = 1,
+                 inline = FALSE
+               ),
+               radioButtons(
+                 inputId = "axis_2",
+                 label = "Select the component to display on the vertical axis",
+                 choices = seq(1,4),
+                 selected = 2,
+                 inline = FALSE
+               )
+             ))
+    ),
+    tabPanel("Ordination Plot", 
+             
+             DTOutput("test"),
+             
+             #plotOutput("ordi_plot"),
              # Start out with the choices from the dune dataset and update using observe and update functions on the server side
              # must add checkboxes to select PCO axes to retain for the plot
              fluidRow(column(
@@ -107,11 +136,18 @@ server <- function(input, output, session) {
   observeEvent(input$the_data, {
     choices = names(selected_data()$env_vars)
     
-    updateCheckboxGroupInput(inputId = "env_vars",
-                             label = "Environmental Variables: Select 2 to Display on Plot",
+    updateRadioButtons(inputId = "env_shape",
+                             label = "Shape: Select a discrete variable ",
                              choices = choices,
-                             selected = c(choices[1], choices[2]),
+                             selected = c(choices[1]),
                              inline = FALSE)
+    
+    updateRadioButtons(inputId = "env_color",
+                       label = "Color: Select a discrete or continuous variable",
+                       choices = choices,
+                       selected = c(choices[2]),
+                       inline = FALSE)
+    
   }, ignoreNULL = FALSE)
 
 
@@ -124,8 +160,6 @@ server <- function(input, output, session) {
   output$selected_data_1 <- renderDT({selected_data()$ind_obs})
   output$selected_data_2 <- renderDT({selected_data()$env_vars})
   
-  env_shape_choice <- reactive({input$env_shape})
-  env_color_choice <- reactive({input$env_color})
   
   # perform the ordination, results in the_ord object
   the_ord <- reactive({
@@ -137,18 +171,63 @@ server <- function(input, output, session) {
     return(list(vectors = vectors, values = values))
     })
   
+  axis_1_choice <- reactive({
+    
+    choice <- numeric(input$axis_1)
+    
+    display_vector <- the_ord()$vectors[ ,choice]
+    
+    return(display_vector = display_vector)
+    
+  })
+  
+  output$test <- renderDataTable(axis_1_choice())
+  
+  
+  axis_2_choice <- reactive({
+    
+    choice <- input$axis_2
+    
+    return(the_ord()$vectors[ ,choice])
+    
+  })
+  
+  env_shape_choice <- reactive({
+    
+    choice <- input$env_shape
+    
+    in_data <- selected_data()$env_vars
+    
+    return(in_data$choice)
+    
+  })
+  
+  
+  
+  env_color_choice <- reactive({
+    
+    choice <- input$env_color
+    
+    in_data <- selected_data()$env_vars
+    
+    return(in_data$choice)
+    
+  })
+  
   output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
   
   # dataframe to feed to ggplot
   # the vectors selected here need to be updated by checkboxinput from the ui
   plot_df <- reactive({
     data.frame(
-      axis_1 = the_ord()$vectors[, 1],
-      axis_2 = the_ord()$vectors[, 2],
+      axis_1 = axis_1_choice(),
+      axis_2 = axis_2_choice(),
       env_color = env_color_choice(),
       env_shape = env_shape_choice()
     )
   })
+  
+  #output$test <- renderDT(plot_df())
   
   
   
