@@ -4,6 +4,7 @@
 # Biggest change to make: must add code for EDA to determine which parts of selected or loaded data should be retained for ordination
 # add code to handle environmental variables
 
+library(tidyverse)
 library(vegan)
 library(ape)
 library(ggplot2)
@@ -74,7 +75,7 @@ ui <- fluidPage(
     ),
     tabPanel("Ordination Plot", 
              
-             DTOutput("test"),
+             verbatimTextOutput("test"),
              
              #plotOutput("ordi_plot"),
              # Start out with the choices from the dune dataset and update using observe and update functions on the server side
@@ -133,20 +134,26 @@ server <- function(input, output, session) {
   })
   
   # get the names of the environmental data for the selected dataset
-  observeEvent(input$the_data, {
-    choices = names(selected_data()$env_vars)
-    
-    updateRadioButtons(inputId = "env_shape",
-                             label = "Shape: Select a discrete variable ",
-                             choices = choices,
-                             selected = c(choices[1]),
-                             inline = FALSE)
-    
-    updateRadioButtons(inputId = "env_color",
-                       label = "Color: Select a discrete or continuous variable",
-                       choices = choices,
-                       selected = c(choices[2]),
-                       inline = FALSE)
+  observeEvent(
+    input$the_data,
+    {
+      choices = names(selected_data()$env_vars)
+      
+      updateRadioButtons(
+        inputId = "env_shape",
+        label = "Shape: Select a discrete variable ",
+        choices = choices,
+        selected = c(choices[1]),
+        inline = FALSE
+      )
+      
+      updateRadioButtons(
+        inputId = "env_color",
+        label = "Color: Select a discrete or continuous variable",
+        choices = choices,
+        selected = c(choices[2]),
+        inline = FALSE
+      )
     
   }, ignoreNULL = FALSE)
 
@@ -173,52 +180,52 @@ server <- function(input, output, session) {
   
   axis_1_choice <- reactive({
     
-    choice <- numeric(input$axis_1)
+    choice <- as.integer(input$axis_1)
     
-    display_vector <- the_ord()$vectors[ ,choice]
+    please <- as_data_frame(the_ord()$vectors[ ,choice])
     
-    return(display_vector = display_vector)
+    return(please)
     
   })
   
-  output$test <- renderDataTable(axis_1_choice())
-  
-  
+
   axis_2_choice <- reactive({
     
-    choice <- input$axis_2
+    choice <- as.integer(input$axis_2)
     
-    return(the_ord()$vectors[ ,choice])
+    please <- as_data_frame(the_ord()$vectors[ ,choice])
+    
+    return(please)
     
   })
-  
+
   env_shape_choice <- reactive({
     
-    choice <- input$env_shape
+    x <- input$env_shape
     
-    in_data <- selected_data()$env_vars
+    awwyeah <-  selected_data()$env_vars %>% select(x)
     
-    return(in_data$choice)
+    return(awwyeah)
     
   })
-  
   
   
   env_color_choice <- reactive({
     
-    choice <- input$env_color
+    x <- input$env_color
+
+    awwyeah <-  selected_data()$env_vars %>% select(x)
     
-    in_data <- selected_data()$env_vars
-    
-    return(in_data$choice)
+    return(awwyeah)
     
   })
-  
+
   output$screeplot <- renderPlot(plot(the_ord()$values[ ,3], type = "b"))
   
   # dataframe to feed to ggplot
   # the vectors selected here need to be updated by checkboxinput from the ui
   plot_df <- reactive({
+    
     data.frame(
       axis_1 = axis_1_choice(),
       axis_2 = axis_2_choice(),
@@ -227,8 +234,8 @@ server <- function(input, output, session) {
     )
   })
   
-  #output$test <- renderDT(plot_df())
   
+  output$test <- renderText(names(plot_df()))
   
   
     output$ordi_plot <- renderPlot({
