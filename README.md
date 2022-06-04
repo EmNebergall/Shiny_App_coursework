@@ -6,12 +6,18 @@ This repo is what it's name suggests: A place to keep my shiny app coursework
 # App development final project status
 
 Don't know how to automatically pick scale for object of type data.frame. Defaulting to continuous.
+
 Don't know how to automatically pick scale for object of type data.frame. Defaulting to continuous.
+
 Don't know how to automatically pick scale for object of type data.frame. Defaulting to continuous.
+
 Don't know how to automatically pick scale for object of type data.frame. Defaulting to continuous.
+
 Warning: Error in scale_f: A continuous variable can not be mapped to shape
 
+
 ## Ordination runs but plot code does not. GGPlot cannot tell that the variable selected is discrete. 
+
 
 Need to add: Lots of text explanations for each element of the app. Maybe a corrplot tab with a discussion of why the correlation strengths are important 
 
