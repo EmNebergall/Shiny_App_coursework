@@ -3,14 +3,24 @@
 This repo is what it's name suggests: A place to keep my shiny app coursework
 
 
-App development final project status
+# App development final project status
 
-Ordination is running: time to add functionality so that the user can see more information about their data, and make more choices!!!
+Don't know how to automatically pick scale for object of type data.frame. Defaulting to continuous.
 
-IMPORTANT must debug nMDS; PCoA runs with all three datasets and all three distance measures but nMDS gives
+Don't know how to automatically pick scale for object of type data.frame. Defaulting to continuous.
 
-Warning: Error: need finite 'xlim' values
+Don't know how to automatically pick scale for object of type data.frame. Defaulting to continuous.
 
-and
+Don't know how to automatically pick scale for object of type data.frame. Defaulting to continuous.
 
-Warnign: Error: arguments imply differing number of rows: 0, 20
+Warning: Error in scale_f: A continuous variable can not be mapped to shape
+
+
+## Ordination runs but plot code does not. GGPlot cannot tell that the variable selected is discrete. 
+
+
+Need to add: Lots of text explanations for each element of the app. Maybe a corrplot tab with a discussion of why the correlation strengths are important 
+
+ordination function needs to be rewritten so that NMDS can run. NMDS likely needs a very different pathway and cannot use so much of the same code as PCOA as I had hoped. 
+
+The interface works until the point of the plot. 
